@@ -16,5 +16,5 @@ app.get('/', (req,res)=>{
     res.json(gameSessionManager.handleAction(req.query, res));
 });
 
-app.listen(3000);
+app.listen(7000);
 console.log("Server ready.");
