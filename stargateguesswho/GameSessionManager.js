@@ -133,9 +133,7 @@ class GameSessionManager {
         if(userInGame === undefined) {
             return {error : "Missing authentication."};
         } else {
-            // TODO
-            //session.startNextRound();
-            return {success : true};
+            return session.applyCharacterCommand(actionQuery);
         }
     }
 }

@@ -29,26 +29,84 @@ class GameSession {
             return {error : "Found existing player name."};
         }
 
-        this.players.push({
+        let player = {
             name : playerName,
             playerID : this.playerID,
-            playerAuth : playerAuth
-        });
+            playerAuth : playerAuth,
+            lastChosenID : -1,
+            lastGuessID : -1,
+            chosenID : -1,
+            guessID : -1,
+            characterStates : []
+        };
+        for(let i = 0; i < 20; i++) {
+            player.characterStates.push({ id : i, isUp : true})
+        }
         this.playerID++;
-        return {playerID : this.playerID-1};
+        this.players.push(player);
+        return {playerID : player.playerID};
     }
 
+    // starts a new round by clearing all the state information back to default and shifts the guess to previous data.
     startNextRound() {
         this.lastActivityTime = new Date();
 
+        this.players.forEach(player => {
+            player.lastChosenID = player.chosenID;
+            player.lastGuessID = player.guessID;
+            player.guessID = -1;
+            player.chosenID = -1;
+            player.characterStates.forEach(c => c.isUp = true);
+        });
+    }
 
+    applyCharacterCommand(actionQuery) {
+        // caller should have already validated that this exists, so no validation needed
+        let player = this.getPlayerWithAuth(actionQuery.playerAuth);
+
+        if(actionQuery.characterAction === 'guess') {
+            player.guessID = actionQuery.characterID;
+        } else if(actionQuery.characterAction === 'choose') {
+            player.chosenID = actionQuery.characterID;
+        } else if(actionQuery.characterAction === 'setUp') {
+            let character = player.characterStates.find(c => c.id === actionQuery.characterID);
+            if(character === undefined) {
+                return {error : "Character does not exist."};
+            } else {
+                character.isUp = true;
+            }
+        } else if(actionQuery.characterAction === 'setDown') {
+            let character = player.characterStates.find(c => c.id === actionQuery.characterID);
+            if(character === undefined) {
+                return {error : "Character does not exist."};
+            } else {
+                character.isUp = false;
+            }
+        } else {
+            return {error : "Invalid character command."};
+        }
+        return {success : true};
     }
 
     // Gets the full state of the game session.
     getDataForState() {
         this.lastActivityTime = new Date();
 
-        return {error : "TODO"};
+        // Sends all data except the auth.
+        let result = [];
+        this.players.forEach(player => {
+            result.push({
+                name : player.name,
+                playerID : player.playerID,
+                lastChosenID : player.lastChosenID,
+                lastGuessID : player.lastGuessID,
+                chosenID : player.chosenID,
+                guessID : player.guessID,
+                characterStates : player.characterStates
+            });
+        });
+
+        return result;
     }
 
     // Gets the difference between the current time and last time an action was attempted for this session.
