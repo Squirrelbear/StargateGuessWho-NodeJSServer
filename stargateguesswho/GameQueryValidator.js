@@ -41,7 +41,7 @@ const validate = function(data) {
         return createServerSchema.validate(data);
     } else if(data.action === 'createPlayer') {
         return createPlayerSchema.validate(data);
-    } else if(data.action === 'startGame' || data.action === 'getState') {
+    } else if(data.action === 'startGame' || data.action === 'getState' || data.action === 'joinServer') {
         return startGameSchema.validate(data);
     } else if(data.action === 'characterCommand') {
         return characterCommandSchema.validate(data);

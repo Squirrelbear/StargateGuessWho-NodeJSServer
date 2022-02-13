@@ -91,6 +91,8 @@ class GameSessionManager {
             return this.handleGetState(actionQuery);
         } else if(actionQuery.action === 'characterCommand') {
             return this.handleCharacterCommand(actionQuery);
+        } else if(actionQuery.action === 'joinServer') {
+            return  this.handleJoinSession(actionQuery);
         }
     }
 
@@ -107,6 +109,23 @@ class GameSessionManager {
             session.startNextRound();
             return {success : true};
         }
+    }
+
+    handleJoinSession(actionQuery) {
+        let session = this.getSessionByCode(actionQuery.sessionCode);
+        if(session === undefined) {
+            return {error : "Server not found. May have expired or incorrect code."};
+        }
+        let user = userManager.getUser(actionQuery.playerAuth);
+        if(user.error) {
+            return {error : "User does not exist."};
+        }
+        let addResult = session.addPlayer(user.playerName, user.playerAuth);
+        if(addResult.error) {
+            return {error : addResult.error};
+        }
+        session.startNextRound();
+        return {success : true};
     }
 
     // Returns the JSON representing the current state of the session.

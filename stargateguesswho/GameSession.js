@@ -7,6 +7,7 @@ This class handles the state of a single game session.
 class GameSession {
     players = [];
     playerID = 0;
+    playerLimit = 2;
 
     // Initialises a server with no players with a unique sessionCode.
     constructor(sessionID, sessionCode) {
@@ -17,6 +18,10 @@ class GameSession {
 
     // Adds the specified player to the game, player name must be unique.
     addPlayer(playerName, playerAuth) {
+        if(this.players.length >= this.playerLimit) {
+            return {error : "This session is already full."}
+        }
+
         this.lastActivityTime = new Date();
         let found = false;
         this.players.forEach(player => {
