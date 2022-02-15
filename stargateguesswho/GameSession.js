@@ -56,6 +56,11 @@ class GameSession {
     startNextRound() {
         this.lastActivityTime = new Date();
 
+        // Abort if the round is already started.
+        if(this.players[0].guessID === -1 && this.players[1].guessID === -1) {
+            return;
+        }
+
         this.players.forEach(player => {
             player.lastChosenID = player.chosenID;
             player.lastGuessID = player.guessID;
