@@ -35,6 +35,7 @@ class GameSession {
         }
 
         let player = {
+            gameNum : 0,
             name : playerName,
             playerID : this.playerID,
             playerAuth : playerAuth,
@@ -56,8 +57,13 @@ class GameSession {
     startNextRound() {
         this.lastActivityTime = new Date();
 
-        // Abort if the round is already started.
+        // This will trigger when the round is already started used for moving to the next round.
         if(this.players[0].guessID === -1 && this.players[1].guessID === -1) {
+            let newGameNum = this.players[0].gameNum + 1;
+            this.players.forEach(player => {
+                player.gameNum = newGameNum;
+            });
+            console.log(this.sessionID + " started new round: " + newGameNum);
             return;
         }
 

@@ -3,7 +3,7 @@ const UserManager = require('./UserManager');
 const GameQueryValidator = require('./GameQueryValidator');
 
 const userManager = new UserManager();
-const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function getRandomString(length) {
     let result = '';
