@@ -2,5 +2,5 @@
 
 A server to manage the state and multiplayer synchronisation of a Stargate themed Guess Who game.
 
-The Unity project pairing with this project is still under development and will be made available once it is playable.
+The Unity project with details about what the game is about can be found at: ([Github Link](https://github.com/Squirrelbear/StargateGuessWho))
 
