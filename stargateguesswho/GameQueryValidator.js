@@ -33,19 +33,28 @@ const characterCommandSchema = Joi.object().keys({
 
 // Verifies there is an action specified and then validates the required schema for the type of action.
 const validate = function(data) {
-    if(!('action' in data)) {
+    if (!('action' in data))
+    {
         return {error : "No action specified."};
     }
 
-    if(data.action === 'createServer') {
+    if (data.action === 'createServer')
+    {
         return createServerSchema.validate(data);
-    } else if(data.action === 'createPlayer') {
+    }
+    else if (data.action === 'createPlayer')
+    {
         return createPlayerSchema.validate(data);
-    } else if(data.action === 'startGame' || data.action === 'getState' || data.action === 'joinServer') {
+    }
+    else if (data.action === 'startGame' || data.action === 'getState' || data.action === 'joinServer')
+    {
         return startGameSchema.validate(data);
-    } else if(data.action === 'characterCommand') {
+    }
+    else if (data.action === 'characterCommand')
+    {
         return characterCommandSchema.validate(data);
     }
+
     return {error : "Not a valid action."};
 }
 
