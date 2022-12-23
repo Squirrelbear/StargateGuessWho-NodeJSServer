@@ -16,6 +16,21 @@ class GameSession
         this.sessionID = sessionID;
         this.sessionCode = sessionCode;
         this.lastActivityTime = new Date();
+
+        // Setup a default character collection using character IDs 0 to 19
+        this.characterCollection = "";
+        for (let i = 0; i < 19; i++)
+        {
+            let characterID = i.toString(16);
+            if (characterID.length == 1)
+            {
+                this.characterCollection.concat("0" + characterID);
+            }
+            else
+            {
+                this.characterCollection.concat(characterID);
+            }
+        }
     }
 
     // Adds the specified player to the game, player name must be unique.
@@ -93,7 +108,7 @@ class GameSession
 
     applyCharacterCommand(actionQuery)
     {
-        // caller should have already validated that this exists, so no validation needed
+        // Caller should have already validated that this exists, so no validation needed
         let player = this.getPlayerWithAuth(actionQuery.playerAuth);
 
         if (actionQuery.characterAction === 'guess')
@@ -136,6 +151,28 @@ class GameSession
         return {success : true};
     }
 
+    setCharacterCollection(actionQuery)
+    {
+        // Caller should have already validated that this exists, so no validation needed
+        let player = this.getPlayerWithAuth(actionQuery.playerAuth);
+
+        if (this.players.length > 1)
+        {
+            return {error : "Can't change character collection after game has started."};
+        }
+
+        // Check if the character set has duplicates (collection is already validated for hex characters and length of 40)
+        let characterSetList = actionQuery.characterSet.match(/.{2}/g);
+        if (characterSetList.length !== new Set(characterSetList).size) {
+            return {error : "Can't change character collection using duplicate characters."};
+        }
+
+        // Store the updated collection and return success.
+        this.characterCollection = actionQuery.characterSet;
+
+        return {success : true};
+    }
+
     // Gets the full state of the game session.
     getDataForState()
     {
@@ -153,6 +190,11 @@ class GameSession
                 guessID : player.guessID,
                 characterStates : player.characterStates
             });
+        });
+
+        // Append the character set to the end of the JSON response
+        result.push({
+            characterCollection : this.characterCollection
         });
 
         return result;

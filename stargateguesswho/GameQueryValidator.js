@@ -8,27 +8,34 @@ This file contains all the schema validation for handling queries to the server.
  */
 
 const createServerSchema = Joi.object().keys({
-    action: Joi.string().trim().min(5).alphanum().required(),
-    playerAuth: Joi.string().trim().length(16).alphanum().required()
+    action : Joi.string().trim().min(5).alphanum().required(),
+    playerAuth : Joi.string().trim().length(16).alphanum().required()
 });
 
 const createPlayerSchema = Joi.object().keys({
-    action: Joi.string().trim().min(5).alphanum().required(),
+    action : Joi.string().trim().min(5).alphanum().required(),
     playerName : Joi.string().trim().min(3).max(20).required()
 });
 
 const startGameSchema = Joi.object().keys({
-    action: Joi.string().trim().min(5).alphanum().required(),
-    playerAuth: Joi.string().trim().length(16).alphanum().required(),
+    action : Joi.string().trim().min(5).alphanum().required(),
+    playerAuth : Joi.string().trim().length(16).alphanum().required(),
     sessionCode : Joi.string().trim().alphanum().required()
 });
 
 const characterCommandSchema = Joi.object().keys({
-    action: Joi.string().trim().min(5).alphanum().required(),
-    playerAuth: Joi.string().trim().length(16).alphanum().required(),
+    action : Joi.string().trim().min(5).alphanum().required(),
+    playerAuth : Joi.string().trim().length(16).alphanum().required(),
     sessionCode : Joi.string().trim().alphanum().required(),
     characterID : Joi.number().required(),
     characterAction : Joi.string().trim().required()
+});
+
+const characterCollectionSchema = Joi.object().keys({
+    action : Joi.string().trim().min(5).alphanum().required(),
+    playerAuth : Joi.string().trim().length(16).alphanum().required(),
+    sessionCode : Joi.string().trim().alphanum().required(),
+    characterSet : Joi.string().trim().regex(/^[A-Fa-f0-9]{40}$/).required()
 });
 
 // Verifies there is an action specified and then validates the required schema for the type of action.
@@ -53,6 +60,10 @@ const validate = function(data) {
     else if (data.action === 'characterCommand')
     {
         return characterCommandSchema.validate(data);
+    }
+    else if (data.action === 'setCharacterCollection')
+    {
+        return characterCollectionSchema.validate(data);
     }
 
     return {error : "Not a valid action."};

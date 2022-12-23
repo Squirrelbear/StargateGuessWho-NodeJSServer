@@ -118,7 +118,11 @@ class GameSessionManager
         }
         else if (actionQuery.action === 'joinServer')
         {
-            return  this.handleJoinSession(actionQuery);
+            return this.handleJoinSession(actionQuery);
+        }
+        else if (actionQuery.action === 'setCharacterCollection')
+        {
+            return this.handleSetCharacterCollection(actionQuery);
         }
     }
 
@@ -189,7 +193,8 @@ class GameSessionManager
     }
 
     // Handles any type of command related to a character
-    handleCharacterCommand(actionQuery) {
+    handleCharacterCommand(actionQuery)
+    {
         let session = this.getSessionByCode(actionQuery.sessionCode);
         if (session === undefined)
         {
@@ -204,6 +209,25 @@ class GameSessionManager
         else
         {
             return session.applyCharacterCommand(actionQuery);
+        }
+    }
+
+    handleSetCharacterCollection(actionQuery)
+    {
+        let session = this.getSessionByCode(actionQuery.sessionCode);
+        if (session === undefined)
+        {
+            return {error : "Server not found. May have expired or incorrect code."};
+        }
+
+        let userInGame = session.getPlayerWithAuth(actionQuery.playerAuth);
+        if (userInGame === undefined)
+        {
+            return {error : "Missing authentication."};
+        }
+        else
+        {
+            return session.setCharacterCollection(actionQuery);
         }
     }
 }
