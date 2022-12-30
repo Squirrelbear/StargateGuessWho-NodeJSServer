@@ -17,20 +17,8 @@ class GameSession
         this.sessionCode = sessionCode;
         this.lastActivityTime = new Date();
 
-        // Setup a default character collection using character IDs 0 to 19
-        this.characterCollection = "";
-        for (let i = 0; i < 19; i++)
-        {
-            let characterID = i.toString(16);
-            if (characterID.length == 1)
-            {
-                this.characterCollection.concat("0" + characterID);
-            }
-            else
-            {
-                this.characterCollection.concat(characterID);
-            }
-        }
+        // Setup a default character collection using the simple sg1 preset
+        this.characterCollection = "0E10142735393A3B414C4D54677C899CA0A2B3BA";
     }
 
     // Adds the specified player to the game, player name must be unique.
