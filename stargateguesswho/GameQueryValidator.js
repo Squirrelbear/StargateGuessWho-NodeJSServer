@@ -65,6 +65,10 @@ const validate = function(data) {
     {
         return characterCollectionSchema.validate(data);
     }
+    else if (data.action === 'testconnection')
+    {
+        return true;
+    }
 
     return {error : "Not a valid action."};
 }

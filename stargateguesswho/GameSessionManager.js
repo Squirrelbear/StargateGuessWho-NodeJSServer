@@ -124,6 +124,14 @@ class GameSessionManager
         {
             return this.handleSetCharacterCollection(actionQuery);
         }
+        else if (actionQuery.action === 'testconnection')
+        {
+            return {success : true};
+        }
+        else
+        {
+            return {error : "Unknown action command."};
+        }
     }
 
     // Starts the game based on a session code and is authenticated that the player is allowed to start it.
