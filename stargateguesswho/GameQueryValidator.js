@@ -7,6 +7,10 @@ This file contains all the schema validation for handling queries to the server.
 @version 2022.1
  */
 
+const testConnectionSchema = Joi.object().keys({
+    action : Joi.string().trim().min(5).alphanum().required()
+});
+
 const createServerSchema = Joi.object().keys({
     action : Joi.string().trim().min(5).alphanum().required(),
     playerAuth : Joi.string().trim().length(16).alphanum().required()
@@ -67,10 +71,10 @@ const validate = function(data) {
     }
     else if (data.action === 'testconnection')
     {
-        return true;
+        return testConnectionSchema.validate(data);
     }
 
-    return {error : "Not a valid action."};
+    return {error : "\"" + data.action + "\" is not a valid action."};
 }
 
 module.exports.validate = validate;
