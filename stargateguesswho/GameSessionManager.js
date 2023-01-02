@@ -177,7 +177,7 @@ class GameSessionManager
 
         session.startNextRound();
 
-        return {success : true};
+        return {success : true, characterCollection : session.characterCollection};
     }
 
     // Returns the JSON representing the current state of the session.
