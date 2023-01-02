@@ -144,11 +144,6 @@ class GameSession
         // Caller should have already validated that this exists, so no validation needed
         let player = this.getPlayerWithAuth(actionQuery.playerAuth);
 
-        if (this.players.length > 1)
-        {
-            return {error : "Can't change character collection after game has started."};
-        }
-
         // Check if the character set has duplicates (collection is already validated for hex characters and length of 40)
         let characterSetList = actionQuery.characterSet.match(/.{2}/g);
         if (characterSetList.length !== new Set(characterSetList).size) {
