@@ -27,8 +27,9 @@ class GameSessionManager
     timeoutDuration = 60 * 30; // time in seconds
 
     // Initialises the default state and starts the 1-second interval validation of sessions for removal.
-    constructor()
+    constructor(logManager)
     {
+        this.logManager = logManager;
         setInterval(this.updateSessions.bind(this), 1000);
         console.log("Game Session Manager Loaded.");
     }
@@ -47,6 +48,8 @@ class GameSessionManager
         this.sessionCounter++;
         session.addPlayer(user.playerName, user.playerAuth);
         this.sessions.push(session);
+
+        this.logManager.write({category : 'session', event : 'session.created', sessionID : session.sessionID, sessionCode : session.sessionCode, playerName : user.playerName, details : {playerID : session.players[0].playerID}});
 
         console.log(user.playerName + " started a new session with id " + session.sessionID + " and code " + session.sessionCode + ".");
 
@@ -92,6 +95,7 @@ class GameSessionManager
         this.sessions = this.sessions.filter(session => session.getTimeSinceLastInteraction() < this.timeoutDuration);
         if (sessionCount !== this.sessions.length)
         {
+            this.logManager.write({category : 'session', event : 'session.expired', details : {removed : sessionCount - this.sessions.length, active : this.sessions.length}});
             console.log("Removed " + (sessionCount - this.sessions.length) + " session(s) for no activity over " + this.timeoutDuration + "s. Active: " + this.sessions.length);
         }
     }
@@ -107,6 +111,27 @@ class GameSessionManager
         }
         
         let actionQuery = value;
+        const user = actionQuery.playerAuth ? userManager.getUser(actionQuery.playerAuth) : undefined;
+        const session = actionQuery.sessionCode ? this.getSessionByCode(actionQuery.sessionCode) : undefined;
+        const sessionPlayer = session && user && !user.error ? session.getPlayerWithAuth(actionQuery.playerAuth) : undefined;
+        const eventDetails = {action : actionQuery.action};
+        if (user && !user.error)
+        {
+            eventDetails.playerName = user.playerName;
+        }
+        this.logManager.write({category : 'server', event : 'request.received', details : eventDetails});
+        if (user && !user.error)
+        {
+            this.logManager.write({category : 'player', event : `player.${actionQuery.action}`, playerName : user.playerName, playerID : sessionPlayer && sessionPlayer.playerID, sessionID : session && session.sessionID, sessionCode : actionQuery.sessionCode, details : {action : actionQuery.action}});
+        }
+        else if (actionQuery.action === 'createPlayer')
+        {
+            this.logManager.write({category : 'player', event : 'player.created', playerName : actionQuery.playerName});
+        }
+        if (session)
+        {
+            this.logManager.write({category : 'session', event : `session.${actionQuery.action}`, sessionID : session.sessionID, sessionCode : session.sessionCode, playerName : user && !user.error ? user.playerName : undefined, playerID : sessionPlayer && sessionPlayer.playerID, details : {action : actionQuery.action}});
+        }
 
         if (actionQuery.action === 'createServer')
         {

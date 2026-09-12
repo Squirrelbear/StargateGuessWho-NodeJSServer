@@ -69,3 +69,9 @@ node app.js
 
 Open `http://localhost:7000/admin` and enter the configured token. The dashboard is read-only and refreshes every 10 seconds. Session data is available only through the bearer-token-protected `/admin/api/sessions` endpoint.
 
+## Server logs
+
+The server writes one append-only JSON Lines file per server process to `stargateguesswho/logs`. Each event has an ISO 8601 `timestamp`, an `instanceID`, a category (`server`, `player`, or `session`), and event-specific identifiers. Set `LOG_DIR` to use a different storage directory. Set `PORT` to use a different HTTP port.
+
+The Logs view in the admin dashboard can select the current or any previous server instance and filter by event category, player name or ID, and session code or ID. The protected API endpoints are `/admin/api/logs/instances` and `/admin/api/logs`; omitting filters from the latter returns all events for the selected instance.
+

@@ -13,6 +13,7 @@
         main { max-width: 1100px; margin: 0 auto; padding: 24px clamp(20px, 5vw, 64px); }
         .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         input, button { box-sizing: border-box; border: 1px solid #b9c4cc; border-radius: 4px; padding: 10px 12px; font: inherit; }
+        select { box-sizing: border-box; border: 1px solid #b9c4cc; border-radius: 4px; padding: 10px 12px; font: inherit; background: white; }
         input { flex: 1 1 280px; min-width: 0; }
         button { background: #d46936; border-color: #b85526; color: white; cursor: pointer; }
         button:hover { background: #b85526; }
@@ -26,6 +27,17 @@
         dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0 0; }
         dt { color: #687780; } dd { margin: 0; text-align: right; font-weight: bold; }
         ul { margin: 12px 0 0; padding-left: 20px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #d6dde2; }
+        .tabs button { border-radius: 4px 4px 0 0; background: #eef1f4; border-color: #d6dde2; color: #52616b; }
+        .tabs button.active { background: #152a3a; border-color: #152a3a; color: white; }
+        .view[hidden] { display: none; }
+        .logs { background: white; border: 1px solid #d6dde2; overflow-x: auto; }
+        table { border-collapse: collapse; min-width: 760px; width: 100%; }
+        th, td { border-bottom: 1px solid #e5e9ec; padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background: #f5f7f8; color: #52616b; font-size: .85rem; }
+        td { font-size: .9rem; }
+        td:first-child { white-space: nowrap; }
+        code { white-space: pre-wrap; overflow-wrap: anywhere; }
         @media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { text-align: left; } }
     </style>
 </head>
@@ -40,12 +52,40 @@
             <button type="submit">Load sessions</button>
         </form>
         <p id="summary" role="status">Enter an admin token to load current sessions.</p>
-        <section class="sessions" id="sessions" aria-live="polite"></section>
+        <nav class="tabs" aria-label="Admin views">
+            <button type="button" class="active" data-view="sessions-view">Sessions</button>
+            <button type="button" data-view="logs-view">Logs</button>
+        </nav>
+        <section class="view" id="sessions-view">
+            <section class="sessions" id="sessions" aria-live="polite"></section>
+        </section>
+        <section class="view" id="logs-view" hidden>
+            <form class="toolbar" id="logs-form">
+                <select id="instance" aria-label="Server instance"></select>
+                <select id="category" aria-label="Event type">
+                    <option value="">All event types</option>
+                    <option value="server">Server events</option>
+                    <option value="player">Player events</option>
+                    <option value="session">Game session events</option>
+                </select>
+                <input id="player-filter" placeholder="Player name or ID" aria-label="Player name or ID">
+                <input id="session-filter" placeholder="Session code or ID" aria-label="Session code or ID">
+                <button type="submit">Load logs</button>
+            </form>
+            <div class="logs" aria-live="polite">
+                <table>
+                    <thead><tr><th>Time</th><th>Type</th><th>Event</th><th>Player</th><th>Session</th><th>Details</th></tr></thead>
+                    <tbody id="logs-body"></tbody>
+                </table>
+            </div>
+        </section>
     </main>
     <script>
         const tokenInput = document.getElementById('token');
         const summary = document.getElementById('summary');
         const sessionsElement = document.getElementById('sessions');
+        const logsBody = document.getElementById('logs-body');
+        const instanceSelect = document.getElementById('instance');
         let refreshTimer;
 
         tokenInput.value = sessionStorage.getItem('adminToken') || '';
@@ -89,9 +129,58 @@
             }
         }
 
+        function formatInstance(instance) {
+            return `${instance.instanceID}${instance.instanceID === instanceSelect.dataset.current ? ' (current)' : ''}`;
+        }
+
+        async function loadInstances() {
+            const response = await fetch('/admin/api/logs/instances', {headers : {Authorization : `Bearer ${tokenInput.value.trim()}`}});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Unable to load log instances.');
+            instanceSelect.dataset.current = data.currentInstanceID;
+            instanceSelect.replaceChildren();
+            data.instances.forEach(instance => {
+                const option = new Option(formatInstance(instance), instance.instanceID);
+                instanceSelect.appendChild(option);
+            });
+        }
+
+        async function loadLogs() {
+            const params = new URLSearchParams({instanceID : instanceSelect.value});
+            [['category', 'category'], ['player', 'player-filter'], ['session', 'session-filter']].forEach(([name, id]) => {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.set(name, value);
+            });
+            const response = await fetch(`/admin/api/logs?${params}`, {headers : {Authorization : `Bearer ${tokenInput.value.trim()}`}});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Unable to load logs.');
+            logsBody.replaceChildren();
+            data.logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${escapeHtml(new Date(log.timestamp).toLocaleString())}</td><td>${escapeHtml(log.category)}</td><td>${escapeHtml(log.event)}</td><td>${escapeHtml(log.playerName || '')}</td><td>${escapeHtml(log.sessionCode || log.sessionID || '')}</td><td><code>${escapeHtml(JSON.stringify(log.details || {}))}</code></td>`;
+                logsBody.appendChild(row);
+            });
+            summary.textContent = `${data.logs.length} log event${data.logs.length === 1 ? '' : 's'} | Updated ${new Date().toLocaleTimeString()}`;
+        }
+
+        document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', async () => {
+            document.querySelectorAll('[data-view]').forEach(tab => tab.classList.remove('active'));
+            button.classList.add('active');
+            document.querySelectorAll('.view').forEach(view => view.hidden = view.id !== button.dataset.view);
+            if (button.dataset.view === 'logs-view') {
+                try { await loadInstances(); await loadLogs(); } catch (error) { summary.textContent = error.message; }
+            }
+        }));
+
+        document.getElementById('logs-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            try { await loadLogs(); } catch (error) { summary.textContent = error.message; }
+        });
+
         document.getElementById('token-form').addEventListener('submit', event => {
             event.preventDefault();
             loadSessions();
+            loadInstances().catch(error => summary.textContent = error.message);
             clearInterval(refreshTimer);
             refreshTimer = setInterval(loadSessions, 10000);
         });
