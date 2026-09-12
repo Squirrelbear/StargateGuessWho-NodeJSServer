@@ -178,7 +178,7 @@ class GameSessionManager
         }
     }
 
-    // Starts the game based on a session code and is authenticated that the player is allowed to start it.
+    // Starts the next round of a game based on a session code and is authenticated that the player is allowed to start it.
     handleStartGame(actionQuery)
     {
         let session = this.getSessionByCode(actionQuery.sessionCode);
@@ -224,6 +224,7 @@ class GameSessionManager
             return {error : addResult.error};
         }
 
+        // Begin the game with the first round immediately.
         session.startNextRound();
 
         return {success : true, characterCollection : session.characterCollection};

@@ -8,6 +8,7 @@ The Unity project with details about what the game is about can be found at: ([G
 
 The server accepts URL query requests at `http://localhost:7000/`. Run these requests in order. The game requires two players. Replace each auth placeholder with the `playerAuth` returned by its create-player request, then replace `<SESSION_CODE>` with the `sessionCode` returned by the create-server request.
 
+Create player 1 (normally run from first client):
 ```text
 http://localhost:7000/?action=createPlayer&playerName=Alice
 ```
@@ -17,6 +18,8 @@ Example response:
 ```json
 {"playerName":"Alice","playerAuth":"<PLAYER_AUTH>"}
 ```
+
+Create server session ready for other to join (run from first client):
 
 ```text
 http://localhost:7000/?action=createServer&playerAuth=<PLAYER_AUTH>
@@ -28,6 +31,8 @@ Example response:
 {"sessionCode":"<SESSION_CODE>"}
 ```
 
+Create player 2 (normally run from second client):
+
 ```text
 http://localhost:7000/?action=createPlayer&playerName=Bob
 ```
@@ -38,6 +43,9 @@ Example response:
 {"playerName":"Bob","playerAuth":"<SECOND_PLAYER_AUTH>"}
 ```
 
+Player 2 join the server session created by player 1 (normally run from second client):
+This will start a new round in the current server session.
+
 ```text
 http://localhost:7000/?action=joinServer&playerAuth=<SECOND_PLAYER_AUTH>&sessionCode=<SESSION_CODE>
 ```
@@ -47,6 +55,8 @@ Example response:
 ```json
 {"success":true,"characterCollection":"<CHARACTER_COLLECTION>"}
 ```
+
+When the current round is completed, a new round can be started with: startGame
 
 ```text
 http://localhost:7000/?action=startGame&playerAuth=<PLAYER_AUTH>&sessionCode=<SESSION_CODE>
