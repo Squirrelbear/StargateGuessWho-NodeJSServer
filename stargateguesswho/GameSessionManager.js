@@ -135,7 +135,13 @@ class GameSessionManager
 
         if (actionQuery.action === 'createServer')
         {
-            let session = this.startSession(userManager.getUser(actionQuery.playerAuth));
+            const user = userManager.getUser(actionQuery.playerAuth);
+            if (user && user.error)
+            {
+                return {error : 'User does not exist.'};
+            }
+
+            let session = this.startSession(user);
             return {sessionCode : session.sessionCode};
         }
         else if (actionQuery.action === 'createPlayer')
