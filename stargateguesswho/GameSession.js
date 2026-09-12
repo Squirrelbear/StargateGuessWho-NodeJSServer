@@ -164,9 +164,12 @@ class GameSession
     }
 
     // Gets the full state of the game session.
-    getDataForState()
+    getDataForState(updateActivityTime = true)
     {
-        this.lastActivityTime = new Date();
+        if (updateActivityTime)
+        {
+            this.lastActivityTime = new Date();
+        }
 
         // Sends all data except the auth.
         let result = [];

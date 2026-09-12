@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "simulate-game": "node scripts/simulate-game.js"
   },
   "keywords": [],
   "author": "Peter Mitchell",

@@ -19,8 +19,8 @@
         button:hover { background: #b85526; }
         #summary { color: #52616b; margin: 0 0 14px; }
         .message { background: white; border-left: 4px solid #d46936; padding: 16px; }
-        .sessions { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-        .session { background: white; border: 1px solid #d6dde2; border-radius: 4px; padding: 18px; box-shadow: 0 2px 5px #152a3a12; }
+        .sessions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 14px; }
+        .session { min-width: 0; background: white; border: 1px solid #d6dde2; border-radius: 4px; padding: 18px; box-shadow: 0 2px 5px #152a3a12; }
         .session h2 { margin: 0 0 12px; font-size: 1.2rem; }
         .status { display: inline-block; border-radius: 3px; padding: 4px 7px; background: #dcefe4; color: #17633a; font-size: .85rem; font-weight: bold; }
         .status.waiting { background: #fff0c7; color: #775b00; }
@@ -29,21 +29,25 @@
         ul { margin: 12px 0 0; padding-left: 20px; }
         details { margin-top: 16px; border: 1px solid #d6dde2; border-radius: 4px; background: #f8fafb; }
         summary { cursor: pointer; padding: 10px 12px; font-weight: bold; color: #152a3a; }
-        .session-details { padding: 0 12px 12px; }
+        .session-details { min-width: 0; overflow-x: auto; padding: 0 12px 12px; }
         .session-details pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: .8rem; line-height: 1.5; }
-        .session-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .session-table { width: max-content; min-width: 100%; border-collapse: collapse; margin-top: 8px; }
         .session-table th, .session-table td { text-align: left; border-bottom: 1px solid #e5e9ec; padding: 6px 0; font-size: .8rem; }
         .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #d6dde2; }
         .tabs button { border-radius: 4px 4px 0 0; background: #eef1f4; border-color: #d6dde2; color: #52616b; }
         .tabs button.active { background: #152a3a; border-color: #152a3a; color: white; }
         .view[hidden] { display: none; }
         .logs { background: white; border: 1px solid #d6dde2; overflow-x: auto; }
-        table { border-collapse: collapse; min-width: 760px; width: 100%; }
+        .logs table { border-collapse: collapse; min-width: 760px; width: 100%; }
         th, td { border-bottom: 1px solid #e5e9ec; padding: 10px 12px; text-align: left; vertical-align: top; }
         th { background: #f5f7f8; color: #52616b; font-size: .85rem; }
         td { font-size: .9rem; }
         td:first-child { white-space: nowrap; }
         code { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .log-details { min-width: 220px; margin-top: 0; }
+        .log-details summary { cursor: pointer; color: #152a3a; padding: 0; }
+        .log-details summary code { white-space: normal; overflow-wrap: anywhere; }
+        .log-details pre { max-width: 520px; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
         @media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { text-align: left; } }
     </style>
 </head>
@@ -183,6 +187,23 @@
             return String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
         }
 
+        function renderLogDetails(log) {
+            const details = log.details || {};
+            if (details.action !== 'characterCommand') {
+                return `<code>${escapeHtml(JSON.stringify(details))}</code>`;
+            }
+
+            const summary = {
+                action : details.action,
+                characterAction : details.characterAction,
+                characterID : details.characterID
+            };
+            return `<details class="log-details">
+                <summary><code>${escapeHtml(JSON.stringify(summary))}</code></summary>
+                <pre>${escapeHtml(JSON.stringify(details, null, 2))}</pre>
+            </details>`;
+        }
+
         async function loadSessions() {
             const token = tokenInput.value.trim();
             const previousScrollPosition = window.scrollY;
@@ -229,7 +250,7 @@
             logsBody.replaceChildren();
             data.logs.forEach(log => {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td>${escapeHtml(new Date(log.timestamp).toLocaleString())}</td><td>${escapeHtml(log.category)}</td><td>${escapeHtml(log.event)}</td><td>${escapeHtml(log.playerName || '')}</td><td>${escapeHtml(log.sessionCode || log.sessionID || '')}</td><td><code>${escapeHtml(JSON.stringify(log.details || {}))}</code></td>`;
+                row.innerHTML = `<td>${escapeHtml(new Date(log.timestamp).toLocaleString())}</td><td>${escapeHtml(log.category)}</td><td>${escapeHtml(log.event)}</td><td>${escapeHtml(log.playerName || '')}</td><td>${escapeHtml(log.sessionCode || log.sessionID || '')}</td><td>${renderLogDetails(log)}</td>`;
                 logsBody.appendChild(row);
             });
             summary.textContent = `${data.logs.length} log event${data.logs.length === 1 ? '' : 's'} | Updated ${new Date().toLocaleTimeString()}`;

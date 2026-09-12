@@ -93,7 +93,7 @@ class GameSessionManager
             })),
             round : session.players.length > 0 ? session.players[0].gameNum : 0,
             secondsSinceActivity : session.getTimeSinceLastInteraction(),
-            state : session.getDataForState()
+            state : session.getDataForState(false)
         }));
     }
 
@@ -124,6 +124,14 @@ class GameSessionManager
         const session = actionQuery.sessionCode ? this.getSessionByCode(actionQuery.sessionCode) : undefined;
         const sessionPlayer = session && user && !user.error ? session.getPlayerWithAuth(actionQuery.playerAuth) : undefined;
         const eventDetails = {action : actionQuery.action};
+        const actionDetails = {action : actionQuery.action};
+        if (actionQuery.action === 'characterCommand')
+        {
+            eventDetails.characterAction = actionQuery.characterAction;
+            eventDetails.characterID = actionQuery.characterID;
+            actionDetails.characterAction = actionQuery.characterAction;
+            actionDetails.characterID = actionQuery.characterID;
+        }
         if (user && !user.error)
         {
             eventDetails.playerName = user.playerName;
@@ -131,7 +139,7 @@ class GameSessionManager
         this.logManager.write({category : 'server', event : 'request.received', details : eventDetails});
         if (user && !user.error)
         {
-            this.logManager.write({category : 'player', event : `player.${actionQuery.action}`, playerName : user.playerName, playerID : sessionPlayer && sessionPlayer.playerID, sessionID : session && session.sessionID, sessionCode : actionQuery.sessionCode, details : {action : actionQuery.action}});
+            this.logManager.write({category : 'player', event : `player.${actionQuery.action}`, playerName : user.playerName, playerID : sessionPlayer && sessionPlayer.playerID, sessionID : session && session.sessionID, sessionCode : actionQuery.sessionCode, details : actionDetails});
         }
         else if (actionQuery.action === 'createPlayer')
         {
@@ -139,7 +147,7 @@ class GameSessionManager
         }
         if (session)
         {
-            this.logManager.write({category : 'session', event : `session.${actionQuery.action}`, sessionID : session.sessionID, sessionCode : session.sessionCode, playerName : user && !user.error ? user.playerName : undefined, playerID : sessionPlayer && sessionPlayer.playerID, details : {action : actionQuery.action}});
+            this.logManager.write({category : 'session', event : `session.${actionQuery.action}`, sessionID : session.sessionID, sessionCode : session.sessionCode, playerName : user && !user.error ? user.playerName : undefined, playerID : sessionPlayer && sessionPlayer.playerID, details : actionDetails});
         }
 
         if (actionQuery.action === 'createServer')
@@ -275,7 +283,30 @@ class GameSessionManager
         }
         else
         {
-            return session.applyCharacterCommand(actionQuery);
+            const previousState = session.getDataForState(false);
+            const result = session.applyCharacterCommand(actionQuery);
+
+            if (result && result.success)
+            {
+                const updatedState = session.getDataForState(false);
+                this.logManager.write({
+                    category : 'session',
+                    event : 'session.characterCommand',
+                    sessionID : session.sessionID,
+                    sessionCode : session.sessionCode,
+                    playerName : userInGame.name,
+                    playerID : userInGame.playerID,
+                    details : {
+                        action : actionQuery.action,
+                        characterAction : actionQuery.characterAction,
+                        characterID : actionQuery.characterID,
+                        previousState,
+                        updatedState
+                    }
+                });
+            }
+
+            return result;
         }
     }
 
