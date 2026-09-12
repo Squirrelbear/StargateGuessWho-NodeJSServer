@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Stargate Guess Who | Admin</title>
+    <style>
+        :root { color-scheme: light; font-family: Arial, sans-serif; background: #eef1f4; color: #17202a; }
+        body { margin: 0; }
+        header { background: #152a3a; color: white; padding: 24px clamp(20px, 5vw, 64px); }
+        header h1 { margin: 0 0 6px; font-size: 1.7rem; }
+        header p { margin: 0; color: #b9c8d2; }
+        main { max-width: 1100px; margin: 0 auto; padding: 24px clamp(20px, 5vw, 64px); }
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        input, button { box-sizing: border-box; border: 1px solid #b9c4cc; border-radius: 4px; padding: 10px 12px; font: inherit; }
+        input { flex: 1 1 280px; min-width: 0; }
+        button { background: #d46936; border-color: #b85526; color: white; cursor: pointer; }
+        button:hover { background: #b85526; }
+        #summary { color: #52616b; margin: 0 0 14px; }
+        .message { background: white; border-left: 4px solid #d46936; padding: 16px; }
+        .sessions { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+        .session { background: white; border: 1px solid #d6dde2; border-radius: 4px; padding: 18px; box-shadow: 0 2px 5px #152a3a12; }
+        .session h2 { margin: 0 0 12px; font-size: 1.2rem; }
+        .status { display: inline-block; border-radius: 3px; padding: 4px 7px; background: #dcefe4; color: #17633a; font-size: .85rem; font-weight: bold; }
+        .status.waiting { background: #fff0c7; color: #775b00; }
+        dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0 0; }
+        dt { color: #687780; } dd { margin: 0; text-align: right; font-weight: bold; }
+        ul { margin: 12px 0 0; padding-left: 20px; }
+        @media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { text-align: left; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Game session monitor</h1>
+        <p>Read-only operational view</p>
+    </header>
+    <main>
+        <form class="toolbar" id="token-form">
+            <input id="token" type="password" autocomplete="current-password" placeholder="Admin token" aria-label="Admin token">
+            <button type="submit">Load sessions</button>
+        </form>
+        <p id="summary" role="status">Enter an admin token to load current sessions.</p>
+        <section class="sessions" id="sessions" aria-live="polite"></section>
+    </main>
+    <script>
+        const tokenInput = document.getElementById('token');
+        const summary = document.getElementById('summary');
+        const sessionsElement = document.getElementById('sessions');
+        let refreshTimer;
+
+        tokenInput.value = sessionStorage.getItem('adminToken') || '';
+
+        function sessionStatus(session) {
+            return session.playerCount < session.playerLimit ? 'Waiting' : 'In progress';
+        }
+
+        function renderSessions(sessions) {
+            sessionsElement.replaceChildren();
+            if (sessions.length === 0) {
+                sessionsElement.innerHTML = '<div class="message">No active sessions.</div>';
+                return;
+            }
+            sessions.forEach(session => {
+                const status = sessionStatus(session);
+                const card = document.createElement('article');
+                card.className = 'session';
+                card.innerHTML = `<h2>Session ${session.sessionCode}</h2><span class="status ${status === 'Waiting' ? 'waiting' : ''}">${status}</span><dl><dt>Players</dt><dd>${session.playerCount}/${session.playerLimit}</dd><dt>Round</dt><dd>${session.round}</dd><dt>Last activity</dt><dd>${session.secondsSinceActivity}s ago</dd></dl><ul>${session.players.map(player => `<li>${escapeHtml(player.name)}</li>`).join('')}</ul>`;
+                sessionsElement.appendChild(card);
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+        }
+
+        async function loadSessions() {
+            const token = tokenInput.value.trim();
+            sessionStorage.setItem('adminToken', token);
+            summary.textContent = 'Loading...';
+            try {
+                const response = await fetch('/admin/api/sessions', {headers : {Authorization : `Bearer ${token}`}});
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Unable to load sessions.');
+                renderSessions(data.sessions);
+                summary.textContent = `${data.sessions.length} active session${data.sessions.length === 1 ? '' : 's'} | Updated ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                sessionsElement.replaceChildren();
+                summary.textContent = error.message;
+            }
+        }
+
+        document.getElementById('token-form').addEventListener('submit', event => {
+            event.preventDefault();
+            loadSessions();
+            clearInterval(refreshTimer);
+            refreshTimer = setInterval(loadSessions, 10000);
+        });
+    </script>
+</body>
+</html>

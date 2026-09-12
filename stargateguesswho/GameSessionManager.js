@@ -72,6 +72,19 @@ class GameSessionManager
         return currentSessions;
     }
 
+    getAdminSummaries()
+    {
+        return this.sessions.map(session => ({
+            sessionID : session.sessionID,
+            sessionCode : session.sessionCode,
+            playerCount : session.players.length,
+            playerLimit : session.playerLimit,
+            players : session.players.map(player => ({name : player.name})),
+            round : session.players.length > 0 ? session.players[0].gameNum : 0,
+            secondsSinceActivity : session.getTimeSinceLastInteraction()
+        }));
+    }
+
     // Updates all sessions to remove sessions that have had no updates for timeoutDuration or longer.
     updateSessions()
     {
@@ -141,6 +154,11 @@ class GameSessionManager
         if (session === undefined)
         {
             return {error : "Server not found. May have expired or incorrect code."};
+        }
+
+        if (session.players.length < session.playerLimit)
+        {
+            return {error : "A second player is required to start the game."};
         }
 
         let userInGame = session.getPlayerWithAuth(actionQuery.playerAuth);
