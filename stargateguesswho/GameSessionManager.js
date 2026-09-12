@@ -82,9 +82,18 @@ class GameSessionManager
             sessionCode : session.sessionCode,
             playerCount : session.players.length,
             playerLimit : session.playerLimit,
-            players : session.players.map(player => ({name : player.name})),
+            players : session.players.map(player => ({
+                name : player.name,
+                playerID : player.playerID,
+                gameNum : player.gameNum,
+                chosenID : player.chosenID,
+                guessID : player.guessID,
+                lastChosenID : player.lastChosenID,
+                lastGuessID : player.lastGuessID
+            })),
             round : session.players.length > 0 ? session.players[0].gameNum : 0,
-            secondsSinceActivity : session.getTimeSinceLastInteraction()
+            secondsSinceActivity : session.getTimeSinceLastInteraction(),
+            state : session.getDataForState()
         }));
     }
 
