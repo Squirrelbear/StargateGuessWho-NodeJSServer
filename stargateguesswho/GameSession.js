@@ -71,6 +71,11 @@ class GameSession
     {
         this.lastActivityTime = new Date();
 
+        if (this.players.length < 2)
+        {
+            return {error : 'A second player is required to start the game.'};
+        }
+
         // This will trigger when the round is already started used for moving to the next round.
         if (this.players[0].guessID === -1 && this.players[1].guessID === -1) 
         {
@@ -82,7 +87,7 @@ class GameSession
 
             console.log(this.sessionID + " started new round: " + newGameNum);
 
-            return;
+            return {success : true};
         }
 
         this.players.forEach(player => {
@@ -92,6 +97,8 @@ class GameSession
             player.chosenID = -1;
             player.characterStates.forEach(c => c.isUp = true);
         });
+
+        return {success : true};
     }
 
     applyCharacterCommand(actionQuery)
