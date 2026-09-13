@@ -1,29 +1,5 @@
 # Guess Who: Stargate - NodeJS Server
 
-## Interactive game simulator
-
-With the server running, use the built-in simulator to create Alice and Bob,
-start a session, join Bob, and play scripted rounds interactively:
-
-```text
-cd stargateguesswho
-npm run simulate-game
-```
-
-The simulator pauses before every action. Press Enter to send the displayed
-request, including both players choosing characters, asking questions with
-`setDown` and `setUp`, submitting guesses, and reading the completed state.
-After each round it pauses before player 1 starts the next round. The simulator
-continues until it is stopped with `Ctrl+C`.
-
-To use a different server or run a fixed number of rounds:
-
-```text
-set SERVER_URL=http://localhost:7001
-set ROUNDS=2
-npm run simulate-game
-```
-
 A server to manage the state and multiplayer synchronisation of a Stargate themed Guess Who game.
 
 The Unity project with details about what the game is about can be found at: ([Github Link](https://github.com/Squirrelbear/StargateGuessWho))
@@ -167,3 +143,26 @@ The server writes one append-only JSON Lines file per server process to `stargat
 
 The Logs view in the admin dashboard can select the current or any previous server instance and filter by event category, player name or ID, and session code or ID. The protected API endpoints are `/admin/api/logs/instances` and `/admin/api/logs`; omitting filters from the latter returns all events for the selected instance.
 
+## Interactive game simulator
+
+With the server running, use the built-in simulator to create Alice and Bob,
+start a session, join Bob, and play scripted rounds interactively:
+
+```text
+cd stargateguesswho
+npm run simulate-game
+```
+
+The simulator pauses before every action. Press Enter to send the displayed
+request, including both players choosing characters, asking questions with
+`setDown` and `setUp`, submitting guesses, and reading the completed state.
+After each round it pauses before player 1 starts the next round. The simulator
+continues until it is stopped with `Ctrl+C`.
+
+To use a different server or run a fixed number of rounds:
+
+```text
+set SERVER_URL=http://localhost:7001
+set ROUNDS=2
+npm run simulate-game
+```
