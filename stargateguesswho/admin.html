@@ -54,7 +54,7 @@
 <body>
     <header>
         <h1>Game session monitor</h1>
-        <p>Read-only operational view</p>
+        <p>Operational view</p>
     </header>
     <main>
         <form class="toolbar" id="token-form">
@@ -65,6 +65,7 @@
         <nav class="tabs" aria-label="Admin views">
             <button type="button" class="active" data-view="sessions-view">Sessions</button>
             <button type="button" data-view="logs-view">Logs</button>
+            <button type="button" data-view="admin-functions-view">Admin functions</button>
         </nav>
         <section class="view" id="sessions-view">
             <section class="sessions" id="sessions" aria-live="polite"></section>
@@ -87,6 +88,22 @@
                     <thead><tr><th>Time</th><th>Type</th><th>Event</th><th>Player</th><th>Session</th><th>Details</th></tr></thead>
                     <tbody id="logs-body"></tbody>
                 </table>
+            </div>
+        </section>
+        <section class="view" id="admin-functions-view" hidden>
+            <div class="session">
+                <h2>Server actions</h2>
+                <p>These actions affect the running server and cannot be undone.</p>
+                <form class="toolbar" id="kill-session-form">
+                    <input id="game-id" inputmode="numeric" placeholder="Game ID" aria-label="Game ID" required>
+                    <button type="submit">Kill game session</button>
+                </form>
+                <form class="toolbar" id="clear-logs-form">
+                    <button type="submit">Clear all log files</button>
+                </form>
+                <form class="toolbar" id="kill-server-form">
+                    <button type="submit">Kill server</button>
+                </form>
             </div>
         </section>
     </main>
@@ -256,6 +273,17 @@
             summary.textContent = `${data.logs.length} log event${data.logs.length === 1 ? '' : 's'} | Updated ${new Date().toLocaleTimeString()}`;
         }
 
+        async function runAdminAction(url, options = {}) {
+            const response = await fetch(url, {
+                method : 'POST',
+                headers : {'Content-Type' : 'application/json', Authorization : `Bearer ${tokenInput.value.trim()}`},
+                ...options
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Unable to complete admin action.');
+            return data;
+        }
+
         document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', async () => {
             document.querySelectorAll('[data-view]').forEach(tab => tab.classList.remove('active'));
             button.classList.add('active');
@@ -274,6 +302,35 @@
         document.getElementById('logs-form').addEventListener('submit', async event => {
             event.preventDefault();
             try { await loadLogs(); } catch (error) { summary.textContent = error.message; }
+        });
+
+        document.getElementById('kill-session-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const gameID = document.getElementById('game-id').value.trim();
+            if (!confirm(`Kill game session ${gameID}?`)) return;
+            try {
+                await runAdminAction('/admin/api/actions/kill-session', {body : JSON.stringify({sessionID : gameID})});
+                summary.textContent = `Game session ${gameID} was killed.`;
+                await loadSessions();
+            } catch (error) { summary.textContent = error.message; }
+        });
+
+        document.getElementById('clear-logs-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!confirm('Clear all log files? This cannot be undone.')) return;
+            try {
+                await runAdminAction('/admin/api/actions/clear-logs');
+                summary.textContent = 'All log files were cleared.';
+            } catch (error) { summary.textContent = error.message; }
+        });
+
+        document.getElementById('kill-server-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!confirm('Kill the server? All connected clients will be disconnected.')) return;
+            try {
+                await runAdminAction('/admin/api/actions/kill-server');
+                summary.textContent = 'Server shutdown initiated.';
+            } catch (error) { summary.textContent = error.message; }
         });
 
         document.getElementById('token-form').addEventListener('submit', event => {

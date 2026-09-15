@@ -67,6 +67,13 @@ class LogManager
             .filter(entry => !filters.session || entry.sessionCode === filters.session || String(entry.sessionID) === filters.session)
             .reverse();
     }
+
+    clearLogs()
+    {
+        fs.readdirSync(this.logDirectory)
+            .filter(file => file.endsWith('.jsonl'))
+            .forEach(file => fs.unlinkSync(path.join(this.logDirectory, file)));
+    }
 }
 
 module.exports = LogManager;

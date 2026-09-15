@@ -101,6 +101,16 @@ test('admin summaries do not reset the active timer for the session', () => {
   assert.equal(after, before.getTime());
 });
 
+test('admin can remove a session by game ID', () => {
+  const manager = buildManager();
+  const session = new GameSession(7, 'GGGGG');
+  manager.sessions.push(session);
+
+  assert.equal(manager.removeSessionByID('7'), session);
+  assert.equal(manager.sessions.length, 0);
+  assert.equal(manager.removeSessionByID('7'), undefined);
+});
+
 test('character command logs include the command and resulting state change', () => {
   const entries = [];
   const manager = new GameSessionManager({ write(entry) { entries.push(entry); } });

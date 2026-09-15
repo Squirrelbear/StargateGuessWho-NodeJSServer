@@ -97,6 +97,20 @@ class GameSessionManager
         }));
     }
 
+    removeSessionByID(sessionID)
+    {
+        const numericSessionID = Number(sessionID);
+        const sessionIndex = this.sessions.findIndex(session => session.sessionID === numericSessionID);
+        if (sessionIndex === -1)
+        {
+            return undefined;
+        }
+
+        const [session] = this.sessions.splice(sessionIndex, 1);
+        this.logManager.write({category : 'session', event : 'session.removedByAdmin', sessionID : session.sessionID, sessionCode : session.sessionCode});
+        return session;
+    }
+
     // Updates all sessions to remove sessions that have had no updates for timeoutDuration or longer.
     updateSessions()
     {

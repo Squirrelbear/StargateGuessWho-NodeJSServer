@@ -135,7 +135,7 @@ $env:ADMIN_TOKEN = "use-a-long-random-value"
 node app.js
 ```
 
-Open `http://localhost:7000/admin` and enter the configured token. The dashboard is read-only and refreshes every 10 seconds. Session data is available only through the bearer-token-protected `/admin/api/sessions` endpoint.
+Open `http://localhost:7000/admin` and enter the configured token. The Sessions view refreshes every 10 seconds. Session data and admin actions are available only through bearer-token-protected endpoints. The Admin functions view can clear all log files, kill a game session by game ID, or shut down the server; each action requires confirmation.
 
 ## Server logs
 

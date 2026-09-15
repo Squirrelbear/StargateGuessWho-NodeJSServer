@@ -14,6 +14,7 @@ const LogManager = require('./LogManager');
 const logManager = new LogManager();
 const gameSessionManager = new GameSessionManager(logManager);
 const app = express();
+app.use(express.json());
 
 function requireAdminToken(req, res, next)
 {
@@ -38,6 +39,7 @@ app.get('/', (req,res)=>{
 });
 
 app.get('/admin', (req,res)=>{
+    console.log("Admin dashboard accessed from " + req.ip);
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
@@ -61,7 +63,41 @@ app.get('/admin/api/logs', requireAdminToken, (req,res)=>{
     });
 });
 
+app.post('/admin/api/actions/clear-logs', requireAdminToken, (req,res)=>{
+    logManager.clearLogs();
+    console.log("Admin requested to clear logs. Logs cleared.");
+    res.json({success : true});
+});
+
+app.post('/admin/api/actions/kill-session', requireAdminToken, (req,res)=>{
+    console.log("Admin requested to kill session with ID: " + req.body.sessionID);
+    const sessionID = req.body && req.body.sessionID;
+    if (sessionID === undefined || sessionID === '' || !Number.isInteger(Number(sessionID)))
+    {
+        console.log("Admin requested to kill session with invalid ID: " + sessionID);
+        return res.status(400).json({error : 'A valid game ID is required.'});
+    }
+
+    const session = gameSessionManager.removeSessionByID(sessionID);
+    if (!session)
+    {
+        console.log("Admin requested to kill session with ID: " + sessionID + " but no session was found.");
+        return res.status(404).json({error : 'Game session not found.'});
+    }
+
+    console.log("Admin successfully killed session with ID: " + sessionID);
+    res.json({success : true, sessionID : session.sessionID, sessionCode : session.sessionCode});
+});
+
+app.post('/admin/api/actions/kill-server', requireAdminToken, (req,res)=>{
+    res.json({success : true});
+    console.log("Admin requested server shutdown. Closing server...");
+    setImmediate(() => server.close(() => process.exit(0)));
+});
+
 const port = process.env.PORT || 7000;
-app.listen(port);
+const server = app.listen(port);
 logManager.write({category : 'server', event : 'server.listening', details : {port}});
-console.log("Server ready.");
+console.log("Server ready. Listening on port " + port);
+console.log("Admin dashboard available at /admin (requires ADMIN_TOKEN environment variable to be set).");
+console.log("Admin token set to: " + (process.env.ADMIN_TOKEN || 'ERROR: NOT SET'));
