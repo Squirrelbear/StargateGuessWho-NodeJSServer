@@ -48,6 +48,13 @@
         .log-details summary { cursor: pointer; color: #152a3a; padding: 0; }
         .log-details summary code { white-space: normal; overflow-wrap: anywhere; }
         .log-details pre { max-width: 520px; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .loop-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+        .loop-controls .session { box-shadow: none; }
+        .loop-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .loop-actions button { flex: 1 1 120px; }
+        .loop-state { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; margin-top: 14px; }
+        .loop-state pre { max-height: 520px; overflow: auto; background: #152a3a; color: #f4f7f9; padding: 14px; border-radius: 4px; font-size: .8rem; line-height: 1.5; }
+        .loop-session { margin-top: 14px; }
         @media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { text-align: left; } }
     </style>
 </head>
@@ -65,6 +72,7 @@
         <nav class="tabs" aria-label="Admin views">
             <button type="button" class="active" data-view="sessions-view">Sessions</button>
             <button type="button" data-view="logs-view">Logs</button>
+            <button type="button" data-view="game-loop-view">Two-player loop</button>
             <button type="button" data-view="admin-functions-view">Admin functions</button>
         </nav>
         <section class="view" id="sessions-view">
@@ -90,6 +98,56 @@
                 </table>
             </div>
         </section>
+        <section class="view" id="game-loop-view" hidden>
+            <div class="session">
+                <h2>Two-player game loop</h2>
+                <p>Create a disposable session and operate both players through the same actions as a game client.</p>
+                <form class="toolbar" id="loop-create-form">
+                    <input id="loop-player-one" value="Alice" minlength="3" maxlength="20" placeholder="Player one" aria-label="Player one name" required>
+                    <input id="loop-player-two" value="Bob" minlength="3" maxlength="20" placeholder="Player two" aria-label="Player two name" required>
+                    <button type="submit">Create two-player game</button>
+                </form>
+                <div class="loop-actions">
+                    <button type="button" id="loop-start-button" disabled>Start next round</button>
+                    <button type="button" id="loop-refresh-button" disabled>Refresh both states</button>
+                </div>
+                <p id="loop-session" class="loop-session" role="status">No simulator session created.</p>
+            </div>
+            <div class="loop-controls">
+                <article class="session">
+                    <h2 id="loop-player-one-title">Player one</h2>
+                    <form id="loop-player-one-form">
+                        <label>Character ID <input id="loop-player-one-character" type="number" min="0" max="19" value="0" required></label>
+                        <label>Character collection <input id="loop-player-one-collection" value="0E10142735393A3B414C4D54677C899CA0A2B3BA" pattern="[A-Fa-f0-9]{40}" aria-label="Player one character collection" required></label>
+                        <div class="loop-actions">
+                            <button type="submit" data-character-action="choose">Choose</button>
+                            <button type="submit" data-character-action="guess">Guess</button>
+                            <button type="submit" data-character-action="setDown">Set down</button>
+                            <button type="submit" data-character-action="setUp">Set up</button>
+                            <button type="submit" data-character-action="setCharacterCollection">Set collection</button>
+                        </div>
+                    </form>
+                </article>
+                <article class="session">
+                    <h2 id="loop-player-two-title">Player two</h2>
+                    <form id="loop-player-two-form">
+                        <label>Character ID <input id="loop-player-two-character" type="number" min="0" max="19" value="1" required></label>
+                        <label>Character collection <input id="loop-player-two-collection" value="0E10142735393A3B414C4D54677C899CA0A2B3BA" pattern="[A-Fa-f0-9]{40}" aria-label="Player two character collection" required></label>
+                        <div class="loop-actions">
+                            <button type="submit" data-character-action="choose">Choose</button>
+                            <button type="submit" data-character-action="guess">Guess</button>
+                            <button type="submit" data-character-action="setDown">Set down</button>
+                            <button type="submit" data-character-action="setUp">Set up</button>
+                            <button type="submit" data-character-action="setCharacterCollection">Set collection</button>
+                        </div>
+                    </form>
+                </article>
+            </div>
+            <div class="loop-state">
+                <article class="session"><h2>Player one state</h2><pre id="loop-player-one-state">Create a game to view state.</pre></article>
+                <article class="session"><h2>Player two state</h2><pre id="loop-player-two-state">Create a game to view state.</pre></article>
+            </div>
+        </section>
         <section class="view" id="admin-functions-view" hidden>
             <div class="session">
                 <h2>Server actions</h2>
@@ -113,6 +171,11 @@
         const sessionsElement = document.getElementById('sessions');
         const logsBody = document.getElementById('logs-body');
         const instanceSelect = document.getElementById('instance');
+        const loopSessionLabel = document.getElementById('loop-session');
+        const loopStartButton = document.getElementById('loop-start-button');
+        const loopRefreshButton = document.getElementById('loop-refresh-button');
+        const loopPlayers = [];
+        let loopSessionCode = '';
         let refreshTimer;
 
         tokenInput.value = sessionStorage.getItem('adminToken') || '';
@@ -284,6 +347,52 @@
             return data;
         }
 
+        async function runGameAction(action, parameters = {}) {
+            const query = new URLSearchParams({action, ...parameters});
+            const response = await fetch(`/?${query}`);
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error || 'Unable to complete game action.');
+            return data;
+        }
+
+        function setLoopControlsEnabled(enabled) {
+            loopStartButton.disabled = !enabled;
+            loopRefreshButton.disabled = !enabled;
+            document.querySelectorAll('#loop-player-one-form button, #loop-player-two-form button').forEach(button => button.disabled = !enabled);
+        }
+
+        function renderLoopStates(states) {
+            states.forEach((state, index) => {
+                document.getElementById(`loop-player-${index === 0 ? 'one' : 'two'}-state`).textContent = JSON.stringify(state, null, 2);
+            });
+        }
+
+        async function refreshLoopStates() {
+            if (!loopSessionCode || loopPlayers.length !== 2) return;
+            const states = await Promise.all(loopPlayers.map(player => runGameAction('getState', {playerAuth : player.playerAuth, sessionCode : loopSessionCode})));
+            renderLoopStates([states[0].find(player => player.playerID === 0), states[1].find(player => player.playerID === 1)]);
+        }
+
+        async function handleLoopCommand(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const playerIndex = form.id.includes('one') ? 0 : 1;
+            const action = event.submitter.dataset.characterAction;
+            const playerKey = playerIndex === 0 ? 'one' : 'two';
+            const parameters = {playerAuth : loopPlayers[playerIndex].playerAuth, sessionCode : loopSessionCode};
+            if (action === 'setCharacterCollection') {
+                parameters.characterSet = document.getElementById(`loop-player-${playerKey}-collection`).value.trim();
+            } else {
+                parameters.characterAction = action;
+                parameters.characterID = document.getElementById(`loop-player-${playerKey}-character`).value;
+            }
+            try {
+                await runGameAction(action === 'setCharacterCollection' ? action : 'characterCommand', parameters);
+                await refreshLoopStates();
+                summary.textContent = `${loopPlayers[playerIndex].playerName} performed ${action}.`;
+            } catch (error) { summary.textContent = error.message; }
+        }
+
         document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', async () => {
             document.querySelectorAll('[data-view]').forEach(tab => tab.classList.remove('active'));
             button.classList.add('active');
@@ -302,6 +411,37 @@
         document.getElementById('logs-form').addEventListener('submit', async event => {
             event.preventDefault();
             try { await loadLogs(); } catch (error) { summary.textContent = error.message; }
+        });
+
+        document.getElementById('loop-create-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            try {
+                const playerOne = await runGameAction('createPlayer', {playerName : document.getElementById('loop-player-one').value.trim()});
+                const server = await runGameAction('createServer', {playerAuth : playerOne.playerAuth});
+                const playerTwo = await runGameAction('createPlayer', {playerName : document.getElementById('loop-player-two').value.trim()});
+                await runGameAction('joinServer', {playerAuth : playerTwo.playerAuth, sessionCode : server.sessionCode});
+                loopPlayers.splice(0, loopPlayers.length, playerOne, playerTwo);
+                loopSessionCode = server.sessionCode;
+                document.getElementById('loop-player-one-title').textContent = playerOne.playerName;
+                document.getElementById('loop-player-two-title').textContent = playerTwo.playerName;
+                loopSessionLabel.textContent = `Session ${loopSessionCode} is ready. Both players are in round 1.`;
+                setLoopControlsEnabled(true);
+                await refreshLoopStates();
+            } catch (error) { loopSessionLabel.textContent = error.message; }
+        });
+
+        document.getElementById('loop-player-one-form').addEventListener('submit', handleLoopCommand);
+        document.getElementById('loop-player-two-form').addEventListener('submit', handleLoopCommand);
+        setLoopControlsEnabled(false);
+        loopRefreshButton.addEventListener('click', async () => {
+            try { await refreshLoopStates(); } catch (error) { summary.textContent = error.message; }
+        });
+        loopStartButton.addEventListener('click', async () => {
+            try {
+                await runGameAction('startGame', {playerAuth : loopPlayers[0].playerAuth, sessionCode : loopSessionCode});
+                await refreshLoopStates();
+                loopSessionLabel.textContent = `Session ${loopSessionCode} advanced to the next round.`;
+            } catch (error) { summary.textContent = error.message; }
         });
 
         document.getElementById('kill-session-form').addEventListener('submit', async event => {
