@@ -135,7 +135,9 @@ $env:ADMIN_TOKEN = "use-a-long-random-value"
 node app.js
 ```
 
-Open `http://localhost:7000/admin` and enter the configured token. The Sessions view refreshes every 10 seconds. Session data and admin actions are available only through bearer-token-protected endpoints. The Admin functions view can clear all log files, kill a game session by game ID, or shut down the server; each action requires confirmation.
+Open `http://localhost:7000/admin` and enter the configured token. The Sessions view refreshes every 10 seconds and shows each session's code and ID in its title. Session data and admin actions are available only through bearer-token-protected endpoints. The Admin functions view can clear all log files, kill a game session by session ID or code, or shut down the server; each action requires confirmation. Session codes entered in the dashboard are case-insensitive.
+
+To kill a session through the protected API, POST to `/admin/api/actions/kill-session` with either `{"sessionID":7}` (a numeric string is also accepted) or `{"sessionCode":"ABCDE"}`. Provide exactly one identifier; API session codes must be five uppercase letters. Invalid identifiers return HTTP 400, and valid identifiers with no active session return HTTP 404.
 
 ## Server logs
 

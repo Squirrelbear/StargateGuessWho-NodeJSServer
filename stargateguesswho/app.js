@@ -70,22 +70,31 @@ app.post('/admin/api/actions/clear-logs', requireAdminToken, (req,res)=>{
 });
 
 app.post('/admin/api/actions/kill-session', requireAdminToken, (req,res)=>{
-    console.log("Admin requested to kill session with ID: " + req.body.sessionID);
     const sessionID = req.body && req.body.sessionID;
-    if (sessionID === undefined || sessionID === '' || !Number.isInteger(Number(sessionID)))
+    const sessionCode = req.body && req.body.sessionCode;
+    const hasSessionID = sessionID !== undefined;
+    const hasSessionCode = sessionCode !== undefined;
+    const validSessionID = (typeof sessionID === 'number' || (typeof sessionID === 'string' && /^\d+$/.test(sessionID)))
+        && Number.isSafeInteger(Number(sessionID)) && Number(sessionID) >= 0;
+    const validSessionCode = typeof sessionCode === 'string' && /^[A-Z]{5}$/.test(sessionCode);
+    if (hasSessionID === hasSessionCode || (hasSessionID ? !validSessionID : !validSessionCode))
     {
-        console.log("Admin requested to kill session with invalid ID: " + sessionID);
-        return res.status(400).json({error : 'A valid game ID is required.'});
+        console.log("Admin requested to kill session with an invalid session ID or code.");
+        return res.status(400).json({error : 'Provide either a valid session ID or a five-letter uppercase session code.'});
     }
 
-    const session = gameSessionManager.removeSessionByID(sessionID);
+    const identifier = hasSessionID ? sessionID : sessionCode;
+    console.log("Admin requested to kill session: " + identifier);
+    const session = hasSessionID
+        ? gameSessionManager.removeSessionByID(sessionID)
+        : gameSessionManager.removeSessionByCode(sessionCode);
     if (!session)
     {
-        console.log("Admin requested to kill session with ID: " + sessionID + " but no session was found.");
+        console.log("Admin requested to kill session: " + identifier + " but no session was found.");
         return res.status(404).json({error : 'Game session not found.'});
     }
 
-    console.log("Admin successfully killed session with ID: " + sessionID);
+    console.log("Admin successfully killed session with ID: " + session.sessionID + " and code: " + session.sessionCode);
     res.json({success : true, sessionID : session.sessionID, sessionCode : session.sessionCode});
 });
 

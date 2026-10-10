@@ -111,6 +111,12 @@ class GameSessionManager
         return session;
     }
 
+    removeSessionByCode(sessionCode)
+    {
+        const session = this.getSessionByCode(sessionCode);
+        return session ? this.removeSessionByID(session.sessionID) : undefined;
+    }
+
     // Updates all sessions to remove sessions that have had no updates for timeoutDuration or longer.
     updateSessions()
     {
